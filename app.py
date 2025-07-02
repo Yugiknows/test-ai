@@ -303,33 +303,28 @@ class AgriHelperApp:
                 )
         
         # Handle audio input
-        if audio_bytes and not st.session_state.audio_processing:
-            st.session_state.audio_processing = True
-            
-            with st.spinner("🎤 Processing your voice..."):
-                transcript = self.process_audio_input(audio_bytes)
-            
-            if transcript:
-                # Display user input
-                with st.chat_message("user"):
-                    st.write(transcript)
+        if audio_bytes:
+            # Check if this is a new audio recording by comparing with stored audio
+            if "last_audio_bytes" not in st.session_state or st.session_state.last_audio_bytes != audio_bytes:
+                st.session_state.last_audio_bytes = audio_bytes
+                st.session_state.audio_processing = True
                 
-                with st.spinner("🤔 Thinking about your farming question..."):
-                    response = self.generate_response(transcript)
+                with st.spinner("🎤 Processing your voice..."):
+                    transcript = self.process_audio_input(audio_bytes)
                 
-                if response:
-                    # Display assistant response
-                    with st.chat_message("assistant"):
-                        st.write(response)
+                if transcript:
+                    with st.spinner("🤔 Thinking about your farming question..."):
+                        response = self.generate_response(transcript)
                     
-                    # Generate voice response
-                    with st.spinner("🔊 Generating voice response..."):
-                        self.handle_text_to_speech(response)
-                    
-                    st.success("✅ Response complete! Ask another question anytime.")
-            
-            st.session_state.audio_processing = False
-            st.rerun()
+                    if response:
+                        # Generate voice response
+                        with st.spinner("🔊 Generating voice response..."):
+                            self.handle_text_to_speech(response)
+                        
+                        st.success("✅ Response complete! Ask another question anytime.")
+                
+                st.session_state.audio_processing = False
+                st.rerun()
         
         # Float the footer container
         footer_container.float("bottom: 0rem;")
