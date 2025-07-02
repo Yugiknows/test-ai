@@ -275,9 +275,9 @@ class AgriHelperApp:
             
             if audio_file and os.path.exists(audio_file):
                 autoplay_audio(audio_file)
-                # Delay cleanup to allow audio to play
+                # Delay cleanup to allow audio to play longer
                 import time
-                time.sleep(1)
+                time.sleep(5)  # Increased from 1 to 5 seconds
                 self.safe_file_cleanup(audio_file)
             else:
                 logger.error("Audio file not generated")
