@@ -128,12 +128,40 @@ h1 {
     justify-content: center;
     align-items: center;
     width: 100%;
+    gap: 20px;
 }
 
 .audio-recorder-footer .stAudioRecorder {
     margin: 0 !important;
     display: flex !important;
     justify-content: center !important;
+}
+
+/* Stop button styling */
+.stop-button {
+    background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 1.5rem !important;
+    box-shadow: 0 4px 20px rgba(211, 47, 47, 0.3) !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.stop-button:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 25px rgba(211, 47, 47, 0.4) !important;
+    background: linear-gradient(135deg, #C62828 0%, #E53935 100%) !important;
+}
+
+.stop-button:active {
+    transform: scale(0.95) !important;
 }
 
 /* Audio recorder button enhancement */
@@ -200,6 +228,12 @@ h1 {
         width: 60px !important;
         height: 60px !important;
     }
+    
+    .stop-button {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 1.2rem !important;
+    }
 }
 
 /* Loading animation */
@@ -225,6 +259,8 @@ class AgriHelperApp:
             st.session_state.messages = [
                 {"role": "assistant", "content": "Hi! How may I assist you today?"}
             ]
+        if "stop_audio" not in st.session_state:
+            st.session_state.stop_audio = False
 
     def run(self) -> None:
         st.title("🌱 AgriHelper")
@@ -241,6 +277,11 @@ class AgriHelperApp:
             
             # Record audio input with default settings to show pause/stop buttons
             audio_bytes = audio_recorder()
+            
+            # Stop speaking button
+            if st.button("🔇", key="stop_audio", help="Stop AI from speaking"):
+                st.session_state.stop_audio = True
+                st.rerun()
             
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -266,12 +307,19 @@ class AgriHelperApp:
             with st.chat_message("assistant"):
                 with st.spinner("Thinking🤔..."):
                     final_response = get_answer(st.session_state.messages)
-                with st.spinner("Generating audio response..."):
-                    audio_file = text_to_speech(final_response)
-                    autoplay_audio(audio_file)
+                
+                # Only generate audio if not stopped
+                if not st.session_state.stop_audio:
+                    with st.spinner("Generating audio response..."):
+                        audio_file = text_to_speech(final_response)
+                        autoplay_audio(audio_file)
+                        os.remove(audio_file)
+                else:
+                    # Reset stop flag after skipping audio
+                    st.session_state.stop_audio = False
+                
                 st.write(final_response)
                 st.session_state.messages.append({"role": "assistant", "content": final_response})
-                os.remove(audio_file)
 
         # Sidebar with tips and examples
         with st.sidebar:
