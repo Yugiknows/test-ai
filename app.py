@@ -271,29 +271,20 @@ class AgriHelperApp:
     def handle_text_to_speech(self, text: str) -> None:
         """Convert text to speech and play audio."""
         try:
-            st.info("🔊 Generating audio response...")
             audio_file = text_to_speech(text)
             
             if audio_file and os.path.exists(audio_file):
-                st.info("🎵 Playing audio response...")
                 autoplay_audio(audio_file)
-                
-                # Display audio player as backup
-                st.audio(audio_file, format='audio/mp3')
-                st.success("🔊 Audio response ready! Check your speakers/volume.")
-                
                 # Delay cleanup to allow audio to play
                 import time
-                time.sleep(2)  # Give time for audio to start playing
+                time.sleep(1)
                 self.safe_file_cleanup(audio_file)
             else:
-                st.error("❌ Failed to generate audio file")
-                st.warning("⚠️ Voice response unavailable, but text response is shown above.")
+                logger.error("Audio file not generated")
                 
         except Exception as e:
             logger.error(f"Error with text-to-speech: {str(e)}")
-            st.error(f"TTS Error: {str(e)}")
-            st.warning("⚠️ Voice response unavailable, but text response is shown above.")
+            # Silently fail - don't show warnings to user
     
     def run(self) -> None:
         """Main application loop."""
@@ -322,23 +313,26 @@ class AgriHelperApp:
             # Check if this is a new audio recording by comparing with stored audio
             if "last_audio_bytes" not in st.session_state or st.session_state.last_audio_bytes != audio_bytes:
                 st.session_state.last_audio_bytes = audio_bytes
-                st.session_state.audio_processing = True
                 
                 with st.spinner("🎤 Processing your voice..."):
                     transcript = self.process_audio_input(audio_bytes)
                 
                 if transcript:
-                    with st.spinner("🤔 Thinking about your farming question..."):
+                    # Show user's question immediately
+                    with st.chat_message("user"):
+                        st.write(transcript)
+                    
+                    with st.spinner("🤔 Thinking..."):
                         response = self.generate_response(transcript)
                     
                     if response:
-                        # Generate voice response
-                        with st.spinner("🔊 Generating voice response..."):
-                            self.handle_text_to_speech(response)
+                        # Show AI response immediately
+                        with st.chat_message("assistant"):
+                            st.write(response)
                         
-                        st.success("✅ Response complete! Ask another question anytime.")
+                        # Generate voice response in background (no spinner)
+                        self.handle_text_to_speech(response)
                 
-                st.session_state.audio_processing = False
                 st.rerun()
         
         # Float the footer container
