@@ -73,12 +73,15 @@ h1 {
         padding-left: 1rem;
         padding-right: 1rem;
     }
+    
     .stChatMessage[data-testid="chat-message-user"] {
         margin-left: 0.5rem !important;
     }
+    
     .stChatMessage[data-testid="chat-message-assistant"] {
         margin-right: 0.5rem !important;
     }
+    
     h1 {
         font-size: 1.5rem !important;
     }
@@ -87,10 +90,9 @@ h1 {
 """, unsafe_allow_html=True)
 
 def initialize_session_state():
-    """Initialize session state variables"""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hi! How may I assist you today?"}
+            {"role": "system", "content": "You are a helpful assistant providing farming advice in detailed sentences."}
         ]
 
 # Initialize session state
@@ -98,93 +100,41 @@ initialize_session_state()
 
 # Display title
 st.title("🌱 AgriHelper")
-
-# Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Handle text input
-if prompt := st.chat_input("Ask me anything about agriculture..."):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Display user message
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    
-    # Get and display assistant response
-    with st.chat_message("assistant"):
-        with st.spinner("🤔 Thinking..."):
-            response = get_answer(prompt)
-            st.markdown(response)
-            
-            # Convert response to speech
-            try:
-                audio_file = text_to_speech(response)
-                autoplay_audio(audio_file)
-            except Exception as e:
-                st.error(f"Error generating audio: {str(e)}")
-    
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+st.markdown("**Speak to get farming advice - your assistant will respond with voice!**")
 
 # Create footer container for the microphone
 footer_container = st.container()
-
 with footer_container:
-    # Audio recorder
-    audio_bytes = audio_recorder(
-        text="🎤 Click to record your question",
-        recording_color="#2E7D32",
-        neutral_color="#757575",
-        icon_name="microphone",
-        icon_size="2x",
-        key="audio_recorder"
-    )
-
+    audio_bytes = audio_recorder()
+    
 # Handle audio input
 if audio_bytes:
-    with st.spinner("🎤 Transcribing..."):
-        # Save audio bytes to temporary file
+    with st.spinner("🎤 Listening to your question..."):
         webm_file_path = "temp_audio.mp3"
         with open(webm_file_path, "wb") as f:
             f.write(audio_bytes)
-        
-        try:
-            # Transcribe audio to text
-            question = speech_to_text(webm_file_path)
+        transcript = speech_to_text(webm_file_path)
+        if transcript:
+            st.success(f"You asked: {transcript}")
             
-            if question:
-                # Add user message to chat
-                st.session_state.messages.append({"role": "user", "content": question})
-                
-                # Get assistant response
-                with st.spinner("🤔 Processing your question..."):
-                    final_response = get_answer(question)
-                    
-                # Add assistant response to chat
-                st.session_state.messages.append({"role": "assistant", "content": final_response})
-                
-                # Convert response to speech
-                try:
-                    audio_file = text_to_speech(final_response)
-                    autoplay_audio(audio_file)
-                except Exception as e:
-                    st.error(f"Error generating audio response: {str(e)}")
-                
-                # Rerun to update the chat display
-                st.rerun()
-            else:
-                st.error("Could not transcribe audio. Please try again.")
-                
-        except Exception as e:
-            st.error(f"Error processing audio: {str(e)}")
-        
-        finally:
-            # Clean up temporary file
-            if os.path.exists(webm_file_path):
-                os.remove(webm_file_path)
-
-# Float the footer container to bottom
+            # Add user message to conversation history
+            st.session_state.messages.append({"role": "user", "content": transcript})
+            
+            with st.spinner("🤔 Thinking about your farming question..."):
+                final_response = get_answer(st.session_state.messages)
+            
+            with st.spinner("🔊 Speaking my response..."):    
+                audio_file = text_to_speech(final_response)
+                autoplay_audio(audio_file)
+            
+            st.info(f"Assistant says: {final_response}")
+            
+            # Add assistant response to conversation history
+            st.session_state.messages.append({"role": "assistant", "content": final_response})
+            
+            # Clean up files
+            os.remove(webm_file_path)
+            os.remove(audio_file)
+            
+# Float the footer container
 footer_container.float("bottom: 0rem;")
