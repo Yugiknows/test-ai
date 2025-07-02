@@ -291,18 +291,7 @@ class AgriHelperApp:
         # Create footer container for audio recorder
         footer_container = st.container()
         
-        with footer_container:
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.markdown("### 🎤 Tap to speak")
-                audio_bytes = audio_recorder(
-                    text="Click to record",
-                    recording_color="#ff0000",
-                    neutral_color="#2E7D32",
-                    icon_name="microphone",
-                    icon_size="2x"
-                )
-        
+
         # Handle audio input
         if audio_bytes and not st.session_state.audio_processing:
             st.session_state.audio_processing = True
