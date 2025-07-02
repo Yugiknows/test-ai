@@ -1,7 +1,4 @@
-/* Hide the main audio recorder when it's in the content area */
-.main .stAudioRecorder {
-    display: none !important;
-}import streamlit as st
+import streamlit as st
 import os
 import tempfile
 import logging
@@ -154,6 +151,11 @@ h1 {
 .audio-recorder-footer .stAudioRecorder button:hover {
     transform: scale(1.1) !important;
     box-shadow: 0 6px 25px rgba(46, 125, 50, 0.4) !important;
+}
+
+/* Hide the main audio recorder when it's in the content area */
+.main .stAudioRecorder {
+    display: none !important;
 }
 
 /* Show only the footer audio recorder */
