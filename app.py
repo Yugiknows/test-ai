@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Float feature initialization
 float_init()
 
-# Modified styling (removed stop button CSS)
+# Styling (same as provided, no changes needed here)
 st.markdown("""
 <style>
 /* Main app styling */
@@ -227,7 +227,9 @@ class AgriHelperApp:
             ]
         if "last_processed_index" not in st.session_state:
             st.session_state.last_processed_index = 0
-            
+        if "audio_processed" not in st.session_state:
+            st.session_state.audio_processed = False  # Track if audio has been processed
+
     def run(self) -> None:
         st.title("🌱 AgriHelper")
         
@@ -249,8 +251,8 @@ class AgriHelperApp:
         # Float the footer to bottom
         footer_container.float("bottom: 0rem;")
 
-        # Process audio if recorded
-        if audio_bytes:
+        # Process audio if recorded and not yet processed
+        if audio_bytes and not st.session_state.audio_processed:
             try:
                 with st.spinner("Transcribing..."):
                     webm_file_path = "temp_audio.mp3"
@@ -267,14 +269,20 @@ class AgriHelperApp:
                     if os.path.exists(webm_file_path):
                         os.remove(webm_file_path)
 
-                # Clear recorded audio to avoid reprocessing
-                st.session_state["audio_recorder"] = None
+                # Mark audio as processed to prevent reprocessing
+                st.session_state.audio_processed = True
                         
             except Exception as e:
                 st.error(f"Error processing audio: {str(e)}")
                 # Clean up temp file even if there's an error
                 if os.path.exists(webm_file_path):
                     os.remove(webm_file_path)
+                # Still mark as processed to avoid looping on error
+                st.session_state.audio_processed = True
+
+        # Reset audio_processed when no audio is present (new interaction)
+        if not audio_bytes:
+            st.session_state.audio_processed = False
 
         # Generate response for new user messages
         if (
@@ -297,40 +305,4 @@ class AgriHelperApp:
                         st.warning(f"Audio generation failed: {str(e)}")
                     
                     st.write(final_response)
-                    st.session_state.messages.append({"role": "assistant", "content": final_response})
-                    st.session_state.last_processed_index = len(st.session_state.messages)
-                    
-                except Exception as e:
-                    error_msg = f"Sorry, I encountered an error: {str(e)}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
-        # Sidebar with tips and examples
-        with st.sidebar:
-            st.markdown("### 💡 Tips for better results:")
-            st.markdown("""
-            - Speak clearly and at normal pace
-            - Ask specific farming questions
-            - Mention your crop type and location if relevant
-            - Wait for the complete response before asking again
-            """)
-
-            st.markdown("### 🌾 Example questions:")
-            st.markdown("""
-            - "How do I treat tomato blight?"
-            - "What's the best fertilizer for corn?"
-            - "When should I plant wheat in winter?"
-            - "How to prevent pest damage in vegetables?"
-            """)
-
-
-def main():
-    try:
-        app = AgriHelperApp()
-        app.run()
-    except Exception as e:
-        st.error(f"Application error: {str(e)}")
-        logger.error(f"Application error: {str(e)}")
-
-if __name__ == "__main__":
-    main()
+                    st.session_state.messages.append({"role-Strategic Response
