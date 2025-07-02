@@ -271,14 +271,29 @@ class AgriHelperApp:
     def handle_text_to_speech(self, text: str) -> None:
         """Convert text to speech and play audio."""
         try:
+            st.info("🔊 Generating audio response...")
             audio_file = text_to_speech(text)
-            if audio_file:
+            
+            if audio_file and os.path.exists(audio_file):
+                st.info("🎵 Playing audio response...")
                 autoplay_audio(audio_file)
-                # Schedule cleanup after a delay (audio playback)
+                
+                # Display audio player as backup
+                st.audio(audio_file, format='audio/mp3')
+                st.success("🔊 Audio response ready! Check your speakers/volume.")
+                
+                # Delay cleanup to allow audio to play
+                import time
+                time.sleep(2)  # Give time for audio to start playing
                 self.safe_file_cleanup(audio_file)
+            else:
+                st.error("❌ Failed to generate audio file")
+                st.warning("⚠️ Voice response unavailable, but text response is shown above.")
+                
         except Exception as e:
             logger.error(f"Error with text-to-speech: {str(e)}")
-            st.warning("⚠️ Voice response unavailable, but text response is shown below.")
+            st.error(f"TTS Error: {str(e)}")
+            st.warning("⚠️ Voice response unavailable, but text response is shown above.")
     
     def run(self) -> None:
         """Main application loop."""
