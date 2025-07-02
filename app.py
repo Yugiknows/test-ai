@@ -26,8 +26,7 @@ st.markdown("""
 }
 
 /* Title styling with enhanced gradient */
-h1 {
-    color: #1B5E20 !important;
+h1 color: #1B5E20 !important;
     font-family: 'Segoe UI', 'Arial', sans-serif;
     font-weight: 800;
     text-align: center;
@@ -229,6 +228,8 @@ class AgriHelperApp:
             st.session_state.last_processed_index = 0
         if "audio_processed" not in st.session_state:
             st.session_state.audio_processed = False  # Track if audio has been processed
+        if "audio_key" not in st.session_state:
+            st.session_state.audio_key = 0  # Unique key for audio recorder
 
     def run(self) -> None:
         st.title("🌱 AgriHelper")
@@ -243,8 +244,8 @@ class AgriHelperApp:
         with footer_container:
             st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
             
-            # Record audio input with explicit key
-            audio_bytes = audio_recorder(key="audio_recorder")
+            # Record audio input with dynamic key to reset widget
+            audio_bytes = audio_recorder(key=f"audio_recorder_{st.session_state.audio_key}")
             
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -269,16 +270,18 @@ class AgriHelperApp:
                     if os.path.exists(webm_file_path):
                         os.remove(webm_file_path)
 
-                # Mark audio as processed to prevent reprocessing
+                # Mark audio as processed and increment audio_key to reset recorder
                 st.session_state.audio_processed = True
+                st.session_state.audio_key += 1  # Change key to reset widget
                         
             except Exception as e:
                 st.error(f"Error processing audio: {str(e)}")
                 # Clean up temp file even if there's an error
                 if os.path.exists(webm_file_path):
                     os.remove(webm_file_path)
-                # Still mark as processed to avoid looping on error
+                # Mark as processed and reset recorder to avoid looping
                 st.session_state.audio_processed = True
+                st.session_state.audio_key += 1
 
         # Reset audio_processed when no audio is present (new interaction)
         if not audio_bytes:
