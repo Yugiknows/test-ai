@@ -278,48 +278,73 @@ class AgriHelperApp:
             # Record audio input with default settings to show pause/stop buttons
             audio_bytes = audio_recorder()
             
-            # Stop speaking button
-            if st.button("🔇", key="stop_audio", help="Stop AI from speaking"):
-                st.session_state.stop_audio = True
-                st.rerun()
+            # Stop speaking button - Using columns to avoid the session state error
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                stop_clicked = st.button("🔇", key="stop_audio_btn", help="Stop AI from speaking")
             
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Float the footer to bottom
         footer_container.float("bottom: 0rem;")
 
+        # Handle stop button click
+        if stop_clicked:
+            st.session_state.stop_audio = True
+            st.rerun()
+
         # Process audio if recorded
         if audio_bytes:
-            with st.spinner("Transcribing..."):
-                webm_file_path = "temp_audio.mp3"
-                with open(webm_file_path, "wb") as f:
-                    f.write(audio_bytes)
+            try:
+                with st.spinner("Transcribing..."):
+                    webm_file_path = "temp_audio.mp3"
+                    with open(webm_file_path, "wb") as f:
+                        f.write(audio_bytes)
 
-                transcript = speech_to_text(webm_file_path)
-                if transcript:
-                    st.session_state.messages.append({"role": "user", "content": transcript})
-                    with st.chat_message("user"):
-                        st.write(transcript)
-                os.remove(webm_file_path)
+                    transcript = speech_to_text(webm_file_path)
+                    if transcript:
+                        st.session_state.messages.append({"role": "user", "content": transcript})
+                        with st.chat_message("user"):
+                            st.write(transcript)
+                    
+                    # Clean up temp file
+                    if os.path.exists(webm_file_path):
+                        os.remove(webm_file_path)
+                        
+            except Exception as e:
+                st.error(f"Error processing audio: {str(e)}")
+                # Clean up temp file even if there's an error
+                if os.path.exists(webm_file_path):
+                    os.remove(webm_file_path)
 
         # Generate response if the last message is from user
-        if st.session_state.messages[-1]["role"] == "user":
+        if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
             with st.chat_message("assistant"):
-                with st.spinner("Thinking🤔..."):
-                    final_response = get_answer(st.session_state.messages)
-                
-                # Only generate audio if not stopped
-                if not st.session_state.stop_audio:
-                    with st.spinner("Generating audio response..."):
-                        audio_file = text_to_speech(final_response)
-                        autoplay_audio(audio_file)
-                        os.remove(audio_file)
-                else:
-                    # Reset stop flag after skipping audio
-                    st.session_state.stop_audio = False
-                
-                st.write(final_response)
-                st.session_state.messages.append({"role": "assistant", "content": final_response})
+                try:
+                    with st.spinner("Thinking🤔..."):
+                        final_response = get_answer(st.session_state.messages)
+                    
+                    # Only generate audio if not stopped
+                    if not st.session_state.stop_audio:
+                        try:
+                            with st.spinner("Generating audio response..."):
+                                audio_file = text_to_speech(final_response)
+                                autoplay_audio(audio_file)
+                                if os.path.exists(audio_file):
+                                    os.remove(audio_file)
+                        except Exception as e:
+                            st.warning(f"Audio generation failed: {str(e)}")
+                    else:
+                        # Reset stop flag after skipping audio
+                        st.session_state.stop_audio = False
+                    
+                    st.write(final_response)
+                    st.session_state.messages.append({"role": "assistant", "content": final_response})
+                    
+                except Exception as e:
+                    error_msg = f"Sorry, I encountered an error: {str(e)}"
+                    st.error(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
         # Sidebar with tips and examples
         with st.sidebar:
@@ -341,8 +366,12 @@ class AgriHelperApp:
 
 
 def main():
-    app = AgriHelperApp()
-    app.run()
+    try:
+        app = AgriHelperApp()
+        app.run()
+    except Exception as e:
+        st.error(f"Application error: {str(e)}")
+        logger.error(f"Application error: {str(e)}")
 
 if __name__ == "__main__":
     main()
