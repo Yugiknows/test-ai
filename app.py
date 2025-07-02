@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import tempfile
 import logging
+import time
 from typing import Optional, List, Dict
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
@@ -281,6 +282,8 @@ class AgriHelperApp:
                 logger.info(f"Generated audio file: {audio_file}, size: {len(audio_bytes)} bytes")
                 # Play audio from bytes
                 autoplay_audio(audio_bytes)
+                # Brief delay to ensure playback starts
+                time.sleep(1.0)
                 # Clean up immediately
                 self.safe_file_cleanup(audio_file)
             else:
