@@ -291,7 +291,6 @@ class AgriHelperApp:
         # Handle stop button click
         if stop_clicked:
             st.session_state.stop_audio = True
-            st.rerun()
 
         # Process audio if recorded
         if audio_bytes:
