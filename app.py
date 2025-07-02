@@ -21,7 +21,7 @@ st.markdown("""
 /* Main app styling */
 .main .block-container {
     padding-top: 2rem;
-    padding-bottom: 8rem;
+    padding-bottom: 10rem;
     max-width: 900px;
     margin: 0 auto;
 }
@@ -117,10 +117,25 @@ h1 {
     z-index: 999;
     backdrop-filter: blur(10px);
     border-top: 1px solid rgba(46, 125, 50, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Audio recorder container in footer */
+.audio-recorder-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.audio-recorder-footer .stAudioRecorder {
+    margin: 0 !important;
 }
 
 /* Audio recorder button enhancement */
-.stAudioRecorder button {
+.audio-recorder-footer .stAudioRecorder button {
     background: linear-gradient(135deg, #2E7D32 0%, #388E3C 100%) !important;
     border: none !important;
     border-radius: 50% !important;
@@ -130,9 +145,28 @@ h1 {
     transition: all 0.3s ease !important;
 }
 
-.stAudioRecorder button:hover {
+.audio-recorder-footer .stAudioRecorder button:hover {
     transform: scale(1.1) !important;
     box-shadow: 0 6px 25px rgba(46, 125, 50, 0.4) !important;
+}
+
+/* Record instruction text */
+.record-instruction {
+    color: #2E7D32;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    margin: 0;
+}
+
+/* Hide the main audio recorder when it's in the content area */
+.main .stAudioRecorder {
+    display: none !important;
+}
+
+/* Show only the footer audio recorder */
+.footer-container .stAudioRecorder {
+    display: block !important;
 }
 
 /* Responsive design */
@@ -140,7 +174,7 @@ h1 {
     .main .block-container {
         padding-left: 1rem;
         padding-right: 1rem;
-        padding-bottom: 10rem;
+        padding-bottom: 12rem;
     }
     
     .stChatMessage[data-testid="chat-message-user"] {
@@ -161,6 +195,15 @@ h1 {
     .subtitle {
         font-size: 1rem !important;
         padding: 0.8rem !important;
+    }
+    
+    .footer-container {
+        padding: 1.5rem 0.5rem 1rem 0.5rem;
+    }
+    
+    .audio-recorder-footer .stAudioRecorder button {
+        width: 60px !important;
+        height: 60px !important;
     }
 }
 
@@ -187,16 +230,22 @@ class AgriHelperApp:
             st.session_state.messages = [
                 {"role": "assistant", "content": "Hi! How may I assist you today?"}
             ]
+        if "audio_processed" not in st.session_state:
+            st.session_state.audio_processed = False
 
     def run(self) -> None:
         st.title("🌱 AgriHelper")
+        
         # Display conversation history
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
 
-        # Respond if needed
-        if st.session_state.messages[-1]["role"] != "assistant":
+        # Respond if needed (when new user message is added)
+        if (len(st.session_state.messages) > 1 and 
+            st.session_state.messages[-1]["role"] == "user" and
+            not st.session_state.audio_processed):
+            
             with st.chat_message("assistant"):
                 with st.spinner("Thinking🤔..."):
                     final_response = get_answer(st.session_state.messages)
@@ -206,21 +255,45 @@ class AgriHelperApp:
                 st.write(final_response)
                 st.session_state.messages.append({"role": "assistant", "content": final_response})
                 os.remove(audio_file)
+            st.session_state.audio_processed = True
 
-        # Float the footer container and place mic at bottom
+        # Create footer container with audio recorder
         footer_container = st.container()
         with footer_container:
-            audio_bytes = audio_recorder()
-            if audio_bytes:
-                with st.spinner("Transcribing..."):
-                    webm_path = tempfile.NamedTemporaryFile(delete=False, suffix='.webm').name
-                    with open(webm_path, "wb") as f:
-                        f.write(audio_bytes)
-                    transcript = speech_to_text(webm_path)
-                    os.remove(webm_path)
-                    if transcript:
-                        st.session_state.messages.append({"role": "user", "content": transcript})
+            st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
+            st.markdown('<p class="record-instruction">🎤 Click to record your question</p>', unsafe_allow_html=True)
+            
+            # Record audio input
+            audio_bytes = audio_recorder(
+                text="",
+                recording_color="#2E7D32",
+                neutral_color="#A5D6A7",
+                icon_name="microphone",
+                icon_size="2x"
+            )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Float the footer to bottom
         footer_container.float("bottom: 0rem;")
+
+        # Process audio if recorded
+        if audio_bytes and not st.session_state.audio_processed:
+            with st.spinner("Transcribing..."):
+                webm_file_path = "temp_audio.mp3"
+                with open(webm_file_path, "wb") as f:
+                    f.write(audio_bytes)
+
+                transcript = speech_to_text(webm_file_path)
+                if transcript:
+                    st.session_state.messages.append({"role": "user", "content": transcript})
+                    st.session_state.audio_processed = False  # Allow processing of response
+                    st.rerun()  # Rerun to show the new message and generate response
+                os.remove(webm_file_path)
+
+        # Reset audio processing flag when a new audio is ready to be recorded
+        if not audio_bytes:
+            st.session_state.audio_processed = False
 
         # Sidebar with tips and examples
         with st.sidebar:
