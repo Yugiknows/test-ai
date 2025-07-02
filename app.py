@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import tempfile
 import logging
-import time
 from typing import Optional, List, Dict
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Float feature initialization
 float_init()
 
-# Enhanced styling with modern design
+# Modified styling (removed stop button CSS)
 st.markdown("""
 <style>
 /* Main app styling */
@@ -137,33 +136,6 @@ h1 {
     justify-content: center !important;
 }
 
-/* Stop button styling */
-.stop-button {
-    background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 50% !important;
-    width: 60px !important;
-    height: 60px !important;
-    font-size: 1.5rem !important;
-    box-shadow: 0 4px 20px rgba(211, 47, 47, 0.3) !important;
-    transition: all 0.3s ease !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.stop-button:hover {
-    transform: scale(1.1) !important;
-    box-shadow: 0 6px 25px rgba(211, 47, 47, 0.4) !important;
-    background: linear-gradient(135deg, #C62828 0%, #E53935 100%) !important;
-}
-
-.stop-button:active {
-    transform: scale(0.95) !important;
-}
-
 /* Audio recorder button enhancement */
 .audio-recorder-footer .stAudioRecorder button {
     background: linear-gradient(135deg, #2E7D32 0%, #388E3C 100%) !important;
@@ -228,12 +200,6 @@ h1 {
         width: 60px !important;
         height: 60px !important;
     }
-    
-    .stop-button {
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 1.2rem !important;
-    }
 }
 
 /* Loading animation */
@@ -259,8 +225,6 @@ class AgriHelperApp:
             st.session_state.messages = [
                 {"role": "assistant", "content": "Hi! How may I assist you today?"}
             ]
-        if "stop_audio" not in st.session_state:
-            st.session_state.stop_audio = False
         if "last_processed_index" not in st.session_state:
             st.session_state.last_processed_index = 0
             
@@ -277,24 +241,13 @@ class AgriHelperApp:
         with footer_container:
             st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
             
-            # Record audio input with explicit key so we can clear it later
+            # Record audio input with explicit key
             audio_bytes = audio_recorder(key="audio_recorder")
-            
-            # Stop speaking button - Using columns to avoid the session state error
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col2:
-                stop_clicked = st.button("🔇", key="stop_audio_btn", help="Stop AI from speaking")
             
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Float the footer to bottom
         footer_container.float("bottom: 0rem;")
-
-        # Handle stop button click
-        if stop_clicked:
-            # Set flag to stop audio playback. Streamlit automatically reruns
-            # when a button is clicked, so no explicit rerun is needed.
-            st.session_state.stop_audio = True
 
         # Process audio if recorded
         if audio_bytes:
@@ -314,7 +267,7 @@ class AgriHelperApp:
                     if os.path.exists(webm_file_path):
                         os.remove(webm_file_path)
 
-            # Clear recorded audio to avoid reprocessing on rerun
+                # Clear recorded audio to avoid reprocessing
                 st.session_state["audio_recorder"] = None
                         
             except Exception as e:
@@ -323,7 +276,7 @@ class AgriHelperApp:
                 if os.path.exists(webm_file_path):
                     os.remove(webm_file_path)
 
-        # Generate response only for new user messages
+        # Generate response for new user messages
         if (
             len(st.session_state.messages) > st.session_state.last_processed_index
             and st.session_state.messages[-1]["role"] == "user"
@@ -333,19 +286,15 @@ class AgriHelperApp:
                     with st.spinner("Thinking🤔..."):
                         final_response = get_answer(st.session_state.messages)
                     
-                    # Only generate audio if not stopped
-                    if not st.session_state.stop_audio:
-                        try:
-                            with st.spinner("Generating audio response..."):
-                                audio_file = text_to_speech(final_response)
-                                autoplay_audio(audio_file)
-                                if os.path.exists(audio_file):
-                                    os.remove(audio_file)
-                        except Exception as e:
-                            st.warning(f"Audio generation failed: {str(e)}")
-                    else:
-                        # Reset stop flag after skipping audio
-                        st.session_state.stop_audio = False
+                    # Generate audio response
+                    try:
+                        with st.spinner("Generating audio response..."):
+                            audio_file = text_to_speech(final_response)
+                            autoplay_audio(audio_file)
+                            if os.path.exists(audio_file):
+                                os.remove(audio_file)
+                    except Exception as e:
+                        st.warning(f"Audio generation failed: {str(e)}")
                     
                     st.write(final_response)
                     st.session_state.messages.append({"role": "assistant", "content": final_response})
