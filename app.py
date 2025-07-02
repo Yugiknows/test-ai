@@ -9,7 +9,7 @@ from audio_recorder_streamlit import audio_recorder
 from streamlit_float import *
 
 # Configure logging
-dlogging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Float feature initialization
@@ -72,7 +72,12 @@ class AgriHelperApp:
         # Sidebar tips
         with st.sidebar:
             st.markdown("### 💡 Tips for better results:")
-            st.markdown("- Speak clearly and at normal pace\n- Ask specific farming questions\n- Mention your crop type and location if relevant\n- Wait for the complete response before asking again")
+            st.markdown(
+                "- Speak clearly and at normal pace\n"
+                "- Ask specific farming questions\n"
+                "- Mention your crop type and location if relevant\n"
+                "- Wait for the complete response before asking again"
+            )
 
 
 def main():
