@@ -1,4 +1,7 @@
-import streamlit as st
+/* Hide the main audio recorder when it's in the content area */
+.main .stAudioRecorder {
+    display: none !important;
+}import streamlit as st
 import os
 import tempfile
 import logging
@@ -125,13 +128,15 @@ h1 {
 /* Audio recorder container in footer */
 .audio-recorder-footer {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 10px;
+    width: 100%;
 }
 
 .audio-recorder-footer .stAudioRecorder {
     margin: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
 }
 
 /* Audio recorder button enhancement */
@@ -143,6 +148,7 @@ h1 {
     height: 70px !important;
     box-shadow: 0 4px 20px rgba(46, 125, 50, 0.3) !important;
     transition: all 0.3s ease !important;
+    margin: 0 5px !important;
 }
 
 .audio-recorder-footer .stAudioRecorder button:hover {
@@ -150,23 +156,10 @@ h1 {
     box-shadow: 0 6px 25px rgba(46, 125, 50, 0.4) !important;
 }
 
-/* Record instruction text */
-.record-instruction {
-    color: #2E7D32;
-    font-size: 0.9rem;
-    font-weight: 500;
-    text-align: center;
-    margin: 0;
-}
-
-/* Hide the main audio recorder when it's in the content area */
-.main .stAudioRecorder {
-    display: none !important;
-}
-
 /* Show only the footer audio recorder */
 .footer-container .stAudioRecorder {
-    display: block !important;
+    display: flex !important;
+    justify-content: center !important;
 }
 
 /* Responsive design */
@@ -261,16 +254,9 @@ class AgriHelperApp:
         footer_container = st.container()
         with footer_container:
             st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
-            st.markdown('<p class="record-instruction">🎤 Click to record your question</p>', unsafe_allow_html=True)
             
-            # Record audio input
-            audio_bytes = audio_recorder(
-                text="",
-                recording_color="#2E7D32",
-                neutral_color="#A5D6A7",
-                icon_name="microphone",
-                icon_size="2x"
-            )
+            # Record audio input with default settings to show pause/stop buttons
+            audio_bytes = audio_recorder()
             
             st.markdown('</div>', unsafe_allow_html=True)
 
