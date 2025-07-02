@@ -3,3 +3,4 @@ openai
 python-dotenv
 streamlit-float
 audio-recorder-streamlit
+pydub
