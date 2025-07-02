@@ -261,7 +261,9 @@ class AgriHelperApp:
             ]
         if "stop_audio" not in st.session_state:
             st.session_state.stop_audio = False
-
+        if "last_processed_index" not in st.session_state:
+            st.session_state.last_processed_index = 0
+            
     def run(self) -> None:
         st.title("🌱 AgriHelper")
         
@@ -275,8 +277,8 @@ class AgriHelperApp:
         with footer_container:
             st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
             
-            # Record audio input with default settings to show pause/stop buttons
-            audio_bytes = audio_recorder()
+            # Record audio input with explicit key so we can clear it later
+            audio_bytes = audio_recorder(key="audio_recorder")
             
             # Stop speaking button - Using columns to avoid the session state error
             col1, col2, col3 = st.columns([1, 1, 1])
@@ -290,6 +292,8 @@ class AgriHelperApp:
 
         # Handle stop button click
         if stop_clicked:
+            # Set flag to stop audio playback. Streamlit automatically reruns
+            # when a button is clicked, so no explicit rerun is needed.
             st.session_state.stop_audio = True
 
         # Process audio if recorded
@@ -309,6 +313,9 @@ class AgriHelperApp:
                     # Clean up temp file
                     if os.path.exists(webm_file_path):
                         os.remove(webm_file_path)
+
+            # Clear recorded audio to avoid reprocessing on rerun
+                st.session_state["audio_recorder"] = None
                         
             except Exception as e:
                 st.error(f"Error processing audio: {str(e)}")
@@ -316,8 +323,11 @@ class AgriHelperApp:
                 if os.path.exists(webm_file_path):
                     os.remove(webm_file_path)
 
-        # Generate response if the last message is from user
-        if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+        # Generate response only for new user messages
+        if (
+            len(st.session_state.messages) > st.session_state.last_processed_index
+            and st.session_state.messages[-1]["role"] == "user"
+        ):
             with st.chat_message("assistant"):
                 try:
                     with st.spinner("Thinking🤔..."):
@@ -339,6 +349,7 @@ class AgriHelperApp:
                     
                     st.write(final_response)
                     st.session_state.messages.append({"role": "assistant", "content": final_response})
+                    st.session_state.last_processed_index = len(st.session_state.messages)
                     
                 except Exception as e:
                     error_msg = f"Sorry, I encountered an error: {str(e)}"
