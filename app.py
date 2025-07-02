@@ -100,7 +100,7 @@ initialize_session_state()
 
 # Display title
 st.title("🌱 AgriHelper")
-st.markdown("**Speak to get farming advice - your assistant will respond with voice!**")
+st.markdown("**Speak to get farming advice!**")
 
 # Create footer container for the microphone
 footer_container = st.container()
