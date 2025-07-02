@@ -225,8 +225,6 @@ class AgriHelperApp:
             st.session_state.messages = [
                 {"role": "assistant", "content": "Hi! How may I assist you today?"}
             ]
-        if "audio_processed" not in st.session_state:
-            st.session_state.audio_processed = False
 
     def run(self) -> None:
         st.title("🌱 AgriHelper")
@@ -235,22 +233,6 @@ class AgriHelperApp:
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
-
-        # Respond if needed (when new user message is added)
-        if (len(st.session_state.messages) > 1 and 
-            st.session_state.messages[-1]["role"] == "user" and
-            not st.session_state.audio_processed):
-            
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking🤔..."):
-                    final_response = get_answer(st.session_state.messages)
-                with st.spinner("Generating audio response..."):
-                    audio_file = text_to_speech(final_response)
-                    autoplay_audio(audio_file)
-                st.write(final_response)
-                st.session_state.messages.append({"role": "assistant", "content": final_response})
-                os.remove(audio_file)
-            st.session_state.audio_processed = True
 
         # Create footer container with audio recorder
         footer_container = st.container()
@@ -266,7 +248,7 @@ class AgriHelperApp:
         footer_container.float("bottom: 0rem;")
 
         # Process audio if recorded
-        if audio_bytes and not st.session_state.audio_processed:
+        if audio_bytes:
             with st.spinner("Transcribing..."):
                 webm_file_path = "temp_audio.mp3"
                 with open(webm_file_path, "wb") as f:
@@ -275,13 +257,21 @@ class AgriHelperApp:
                 transcript = speech_to_text(webm_file_path)
                 if transcript:
                     st.session_state.messages.append({"role": "user", "content": transcript})
-                    st.session_state.audio_processed = False  # Allow processing of response
-                    st.rerun()  # Rerun to show the new message and generate response
+                    with st.chat_message("user"):
+                        st.write(transcript)
                 os.remove(webm_file_path)
 
-        # Reset audio processing flag when a new audio is ready to be recorded
-        if not audio_bytes:
-            st.session_state.audio_processed = False
+        # Generate response if the last message is from user
+        if st.session_state.messages[-1]["role"] == "user":
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking🤔..."):
+                    final_response = get_answer(st.session_state.messages)
+                with st.spinner("Generating audio response..."):
+                    audio_file = text_to_speech(final_response)
+                    autoplay_audio(audio_file)
+                st.write(final_response)
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
+                os.remove(audio_file)
 
         # Sidebar with tips and examples
         with st.sidebar:
