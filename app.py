@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Float feature initialization
 float_init()
 
-# Styling (same as provided, no changes needed here)
+# Styling (unchanged from your provided code)
 st.markdown("""
 <style>
 /* Main app styling */
@@ -305,4 +305,40 @@ class AgriHelperApp:
                         st.warning(f"Audio generation failed: {str(e)}")
                     
                     st.write(final_response)
-                    st.session_state.messages.append({"role-Strategic Response
+                    st.session_state.messages.append({"role": "assistant", "content": final_response})
+                    st.session_state.last_processed_index = len(st.session_state.messages)
+                    
+                except Exception as e:
+                    error_msg = f"Sorry, I encountered an error: {str(e)}"
+                    st.error(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
+        # Sidebar with tips and examples
+        with st.sidebar:
+            st.markdown("### 💡 Tips for better results:")
+            st.markdown("""
+            - Speak clearly and at normal pace
+            - Ask specific farming questions
+            - Mention your crop type and location if relevant
+            - Wait for the complete response before asking again
+            """)
+
+            st.markdown("### 🌾 Example questions:")
+            st.markdown("""
+            - "How do I treat tomato blight?"
+            - "What's the best fertilizer for corn?"
+            - "When should I plant wheat in winter?"
+            - "How to prevent pest damage in vegetables?"
+            """)
+
+
+def main():
+    try:
+        app = AgriHelperApp()
+        app.run()
+    except Exception as e:
+        st.error(f"Application error: {str(e)}")
+        logger.error(f"Application error: {str(e)}")
+
+if __name__ == "__main__":
+    main()
