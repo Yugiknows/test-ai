@@ -6,8 +6,6 @@ from typing import Optional, List, Dict
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
 from streamlit_float import *
-from pydub import AudioSegment
-import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -96,7 +94,7 @@ h1 {
 /* Enhanced spinner styling */
 .stSpinner > div {
     border-top-color: #2E7D32 !important;
-    border-width: 3 heterogeneous !important;
+    border-width: 3px !important;
 }
 
 /* Success/Info message styling */
@@ -276,19 +274,14 @@ class AgriHelperApp:
             audio_file = text_to_speech(text)
             
             if audio_file and os.path.exists(audio_file):
+                # Read audio file as bytes
+                with open(audio_file, "rb") as f:
+                    audio_bytes = f.read()
                 # Log audio file details
-                logger.info(f"Generated audio file: {audio_file}, size: {os.path.getsize(audio_file)} bytes")
-                
-                # Get audio duration
-                audio = AudioSegment.from_file(audio_file)
-                duration = len(audio) / 1000.0  # Duration in seconds
-                logger.info(f"Audio duration: {duration} seconds")
-                
-                # Play audio
-                autoplay_audio(audio_file)
-                
-                # Wait for audio to finish playing
-                time.sleep(duration + 1.0)  # Add 1-second buffer
+                logger.info(f"Generated audio file: {audio_file}, size: {len(audio_bytes)} bytes")
+                # Play audio from bytes
+                autoplay_audio(audio_bytes)
+                # Clean up immediately
                 self.safe_file_cleanup(audio_file)
             else:
                 logger.error("Audio file not generated")
