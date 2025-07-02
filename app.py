@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import tempfile
 import logging
+import time
 from typing import Optional, List, Dict
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Float feature initialization
 float_init()
 
-# Styling (unchanged from your provided code)
+# Enhanced styling with modern design
 st.markdown("""
 <style>
 /* Main app styling */
@@ -26,7 +27,8 @@ st.markdown("""
 }
 
 /* Title styling with enhanced gradient */
-h1 color: #1B5E20 !important;
+h1 {
+    color: #1B5E20 !important;
     font-family: 'Segoe UI', 'Arial', sans-serif;
     font-weight: 800;
     text-align: center;
@@ -126,7 +128,6 @@ h1 color: #1B5E20 !important;
     justify-content: center;
     align-items: center;
     width: 100%;
-    gap: 20px;
 }
 
 .audio-recorder-footer .stAudioRecorder {
@@ -224,12 +225,6 @@ class AgriHelperApp:
             st.session_state.messages = [
                 {"role": "assistant", "content": "Hi! How may I assist you today?"}
             ]
-        if "last_processed_index" not in st.session_state:
-            st.session_state.last_processed_index = 0
-        if "audio_processed" not in st.session_state:
-            st.session_state.audio_processed = False  # Track if audio has been processed
-        if "audio_key" not in st.session_state:
-            st.session_state.audio_key = 0  # Unique key for audio recorder
 
     def run(self) -> None:
         st.title("🌱 AgriHelper")
@@ -244,77 +239,39 @@ class AgriHelperApp:
         with footer_container:
             st.markdown('<div class="audio-recorder-footer">', unsafe_allow_html=True)
             
-            # Record audio input with dynamic key to reset widget
-            audio_bytes = audio_recorder(key=f"audio_recorder_{st.session_state.audio_key}")
+            # Record audio input with default settings to show pause/stop buttons
+            audio_bytes = audio_recorder()
             
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Float the footer to bottom
         footer_container.float("bottom: 0rem;")
 
-        # Process audio if recorded and not yet processed
-        if audio_bytes and not st.session_state.audio_processed:
-            try:
-                with st.spinner("Transcribing..."):
-                    webm_file_path = "temp_audio.mp3"
-                    with open(webm_file_path, "wb") as f:
-                        f.write(audio_bytes)
+        # Process audio if recorded
+        if audio_bytes:
+            with st.spinner("Transcribing..."):
+                webm_file_path = "temp_audio.mp3"
+                with open(webm_file_path, "wb") as f:
+                    f.write(audio_bytes)
 
-                    transcript = speech_to_text(webm_file_path)
-                    if transcript:
-                        st.session_state.messages.append({"role": "user", "content": transcript})
-                        with st.chat_message("user"):
-                            st.write(transcript)
-                    
-                    # Clean up temp file
-                    if os.path.exists(webm_file_path):
-                        os.remove(webm_file_path)
+                transcript = speech_to_text(webm_file_path)
+                if transcript:
+                    st.session_state.messages.append({"role": "user", "content": transcript})
+                    with st.chat_message("user"):
+                        st.write(transcript)
+                os.remove(webm_file_path)
 
-                # Mark audio as processed and increment audio_key to reset recorder
-                st.session_state.audio_processed = True
-                st.session_state.audio_key += 1  # Change key to reset widget
-                        
-            except Exception as e:
-                st.error(f"Error processing audio: {str(e)}")
-                # Clean up temp file even if there's an error
-                if os.path.exists(webm_file_path):
-                    os.remove(webm_file_path)
-                # Mark as processed and reset recorder to avoid looping
-                st.session_state.audio_processed = True
-                st.session_state.audio_key += 1
-
-        # Reset audio_processed when no audio is present (new interaction)
-        if not audio_bytes:
-            st.session_state.audio_processed = False
-
-        # Generate response for new user messages
-        if (
-            len(st.session_state.messages) > st.session_state.last_processed_index
-            and st.session_state.messages[-1]["role"] == "user"
-        ):
+        # Generate response if the last message is from user
+        if st.session_state.messages[-1]["role"] == "user":
             with st.chat_message("assistant"):
-                try:
-                    with st.spinner("Thinking🤔..."):
-                        final_response = get_answer(st.session_state.messages)
-                    
-                    # Generate audio response
-                    try:
-                        with st.spinner("Generating audio response..."):
-                            audio_file = text_to_speech(final_response)
-                            autoplay_audio(audio_file)
-                            if os.path.exists(audio_file):
-                                os.remove(audio_file)
-                    except Exception as e:
-                        st.warning(f"Audio generation failed: {str(e)}")
-                    
-                    st.write(final_response)
-                    st.session_state.messages.append({"role": "assistant", "content": final_response})
-                    st.session_state.last_processed_index = len(st.session_state.messages)
-                    
-                except Exception as e:
-                    error_msg = f"Sorry, I encountered an error: {str(e)}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                with st.spinner("Thinking🤔..."):
+                    final_response = get_answer(st.session_state.messages)
+                with st.spinner("Generating audio response..."):
+                    audio_file = text_to_speech(final_response)
+                    autoplay_audio(audio_file)
+                st.write(final_response)
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
+                os.remove(audio_file)
 
         # Sidebar with tips and examples
         with st.sidebar:
@@ -336,12 +293,8 @@ class AgriHelperApp:
 
 
 def main():
-    try:
-        app = AgriHelperApp()
-        app.run()
-    except Exception as e:
-        st.error(f"Application error: {str(e)}")
-        logger.error(f"Application error: {str(e)}")
+    app = AgriHelperApp()
+    app.run()
 
 if __name__ == "__main__":
     main()
